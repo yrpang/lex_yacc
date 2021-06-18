@@ -1,1 +1,6 @@
 .vscode
+*.yy.c
+*.output
+*.tab.c
+*.tab.h
+sql
