@@ -1,31 +1,8 @@
 %{
 #include <stdio.h>
-#include <string.h>
+#include <string>
+#include "operations.h"
 #include "sql.tab.h"
-// #define KEYWORD 0
-// #define INTNUM 1
-// #define FLOATNUM 2
-// #define STRING 3
-// #define ID 4
-
-// #define CREATE 5
-// #define TABLE 6
-// #define DATABASE 7
-// #define SELECT 8
-// #define INSERT 9
-// #define DELETE 10
-// #define FROM 11
-// #define WHERE 12
-// #define INTO 13
-// #define VALUES 14
-// #define SET 15
-
-// #define INT 16
-// #define DOUBLE 17
-// #define CHAR 18
-
-// #define AND 19
-// #define OR 20
 
 %}
 
@@ -123,17 +100,23 @@ exit exit
 {digits} {
     // printf("整数%s：长度为%zu\n", yytext, yyleng);
     // printf("整数 ");
+    yylval.value.length = 4;
+	yylval.value.intnum=atoi(yytext);
     return INTNUM;
 }
 
 {digits}{optional_fraction} {
     // printf("浮点数 ");
+    yylval.value.length = 8;
+	yylval.value.doublenum = atof(yytext);
     return FLOATNUM;
 }
 
 {string} {
+    yylval.value.length = strlen(yytext)+1; 
+    yylval.value.name=(char *)malloc(strlen(yytext)+1);
+    strlcpy(yylval.value.name, yytext, sizeof(yylval.value.name));
     // printf("字符串%s：长度为%zu\n", yytext, yyleng);
-    // printf("%s ", yytext);
     return STRING;
 }
 
@@ -143,7 +126,11 @@ exit exit
 }
 
 {id} {
-    // printf("标识符 ");
+    yylval.value.length = strlen(yytext)+1; 
+    yylval.value.name=(char *)malloc(strlen(yytext)+1);
+    strlcpy(yylval.value.name, yytext, sizeof(yylval.value.name));
+    // printf("标识符 %s ", yytext);
+    // printf("标识符 %s ", yylval.value.name);
     return ID;
 }
 
