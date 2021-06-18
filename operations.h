@@ -10,6 +10,7 @@ struct values
     int length;
 };
 
+//createsql
 struct coltype
 {
     int type; //1:int, 2: double, 3:string
@@ -32,39 +33,26 @@ struct createsql
     struct cols *cols;
 };
 
-/*
-struct colname
+//selectsql
+struct fields
+{
+    char *colname;
+    char *tablename;
+    bool ifall;
+    struct fields *next;
+};
+
+struct tablenames
 {
     char *tablename;
-    int tablelength;
-    int num;
-    char *name;
-    int columelength;
-    int exist;
-    struct colname *next;
+    struct tablenames *next;
 };
 
-
-
-struct colconf
+struct selectsql
 {
-    int con;
-    struct colconf *next;
+    struct fields *fields;
+    struct tablenames *tablenames; // 待完善
 };
-
-
-
-
-
-
-struct database
-{
-    char *name;
-    int tablenum;
-    struct database *next;
-};
-
-*/
 
 /* 数据库自用结构 */
 struct Column
@@ -94,4 +82,4 @@ void createdb(char *);
 void closedb();
 void usedb(char *);
 void createtable(struct createsql *);
-void selectall();
+void select(struct selectsql *);

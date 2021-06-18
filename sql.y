@@ -19,6 +19,10 @@ int yyerror(char * msg);
 	struct coltype* coltype;
 	struct cols* cols;
 	struct createsql* createsql;
+
+	struct fields* fields;
+	struct selectsql* selectsql;
+	struct tablenames* tablenames;
 }
 
 %token EXIT
@@ -39,6 +43,9 @@ int yyerror(char * msg);
 %type<cols> cols col
 %type<createsql> createsql
 
+%type<fields> fields_star table_field table_fields
+%type<tablenames> tablenames
+%type<selectsql> selectsql
 
 
 %%
@@ -48,7 +55,7 @@ statements:	statement {return 0;}
 			;
 
 statement:	createsql {createtable($1)}
-			|selectsql {selectall()}
+			|selectsql {select($1)}
 			|insertsql {printf("INSERT\n")}
 			|deletesql {printf("DELETE\n")}
 			|updatesql {printf("UPDATE\n")}
@@ -60,11 +67,11 @@ statement:	createsql {createtable($1)}
 createdb:	CREATE DATABASE dbname ';' {createdb($3.name)};
 usedb:		USE DATABASE dbname ';' {usedb($3.name)};
 dbname:		ID
-	{
-		$$.length = $1.length;
-		$$.name = (char *)malloc($1.length);
-		strlcpy($$.name, $1.name, sizeof($$.name));
-	};
+			{
+				$$.length = $1.length;
+				$$.name = (char *)malloc($1.length);
+				strlcpy($$.name, $1.name, sizeof($$.name));
+			};
 
 
 createsql:	CREATE TABLE tablename '(' cols ')' ';'
@@ -75,11 +82,11 @@ createsql:	CREATE TABLE tablename '(' cols ')' ';'
 				$$->cols = $5;
 			};
 tablename:	ID
-	{
-		$$.length = $1.length;
-		$$.name = (char *)malloc($1.length);
-		strlcpy($$.name, $1.name, sizeof($$.name));
-	};
+			{
+				$$.length = $1.length;
+				$$.name = (char *)malloc($1.length);
+				strlcpy($$.name, $1.name, sizeof($$.name));
+			};
 cols:		cols ',' col
 			{
 				$$=$1;
@@ -103,11 +110,11 @@ col:		colname coltype
 				$$->next = NULL;
 			};
 colname:	ID
-	{
-		$$.length = $1.length;
-		$$.name = (char *)malloc($1.length);
-		strlcpy($$.name, $1.name, sizeof($$.name));
-	};
+			{
+				$$.length = $1.length;
+				$$.name = (char *)malloc($1.length);
+				strlcpy($$.name, $1.name, sizeof($$.name));
+			};
 coltype:	INT
 			{
 				$$=new struct coltype; 
@@ -130,18 +137,65 @@ coltype:	INT
 
 
 selectsql:	SELECT fields_star FROM tablenames ';'
+			{
+				$$=new struct selectsql;
+				$$->fields = $2;
+				$$->tablenames = $4;
+			}
 			|SELECT fields_star FROM tablenames WHERE conditions ';'
 			;
 fields_star: table_fields
+			{
+				$$=$1;
+			}
 			|'*'
+			{
+				$$=new struct fields;
+				$$->ifall=true;
+				$$->next=NULL;
+			}
 			;
-table_fields: table_field 
+table_fields: table_field
+			{
+				$$=$1
+			}
 			|table_fields ',' table_field
+			{
+				$$=$1;
+				while($1->next!=NULL)
+				{
+					$1 = $1->next;
+				}
+				$1->next = $3;
+			}
 			;
 table_field: colname
+			{
+				$$=new struct fields;
+				$$->tablename = NULL;
+				$$->colname = (char*)malloc($1.length);
+				strlcpy($$->colname, $1.name, sizeof($$->colname));
+				$$->ifall=false;
+				$$->next=NULL;
+			}
 			|tablename '.' colname
+			{
+				$$=new struct fields;
+				$$->tablename = (char*)malloc($1.length);
+				strlcpy($$->tablename, $1.name, sizeof($$->tablename));
+				$$->colname = (char*)malloc($3.length);
+				strlcpy($$->colname, $3.name, sizeof($$->colname));
+				$$->ifall=false;
+				$$->next=NULL;
+			}
 			;
 tablenames:	tablename
+			{
+				$$=new struct tablenames;
+				$$->tablename = (char*)malloc($1.length);
+				strlcpy($$->tablename, $1.name, sizeof($$->tablename));
+				$$->next=NULL;
+			}
 			| tablenames ',' tablename
 			;
 

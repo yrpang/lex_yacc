@@ -91,11 +91,26 @@ void createtable(struct createsql *data)
     cout << table.all_cols.size() << endl;
 }
 
-void selectall()
+void select(struct selectsql *sql)
 {
-    for (auto col : all[db_now].tables[0].all_cols)
+    int table_index;
+    for (table_index = 0; table_index < all[db_now].tables.size(); table_index++)
     {
-        cout << col.name << " ";
+        if (all[db_now].tables[table_index].name == string(sql->tablenames->tablename))
+            break;
+    }
+    if (table_index >= all[db_now].tables.size())
+    {
+        cout << "Error: table fields now exist." << endl;
+        return;
+    }
+
+    if (sql->fields->ifall)
+    {
+        for (auto i : all[db_now].tables[table_index].all_cols)
+        {
+            cout << i.name << " ";
+        }
         cout << endl;
     }
 }
