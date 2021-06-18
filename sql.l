@@ -25,6 +25,7 @@ select select
 insert insert
 delete delete
 update update
+drop drop
 from from
 where where
 into into
@@ -62,6 +63,9 @@ exit exit
 }
 {delete} {
     return DELETE;
+}
+{drop} {
+    return DROP;
 }
 {from} {
     return FROM;

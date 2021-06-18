@@ -26,7 +26,7 @@ int yyerror(char * msg);
 }
 
 %token EXIT
-%token CREATE TABLE DATABASE USE SELECT INSERT DELETE UPDATE FROM WHERE INTO VALUES SET 
+%token CREATE TABLE DATABASE USE SELECT INSERT DELETE UPDATE FROM WHERE INTO VALUES SET DROP
 %token INT DOUBLE CHAR
 %token<value> INTNUM FLOATNUM STRING ID 
 %token ',' ';' '(' ')' '.'
@@ -60,9 +60,14 @@ statement:	createsql {createtable($1)}
 			|deletesql {printf("DELETE\n")}
 			|updatesql {printf("UPDATE\n")}
 			|createdb 
-			|usedb 
+			|usedb
+			|droptable
+			|dropdb
 			|exit {closedb();}
 			;
+
+droptable:	DROP TABLE tablename ';' {droptable($3.name)};
+dropdb:		DROP DATABASE dbname ';' {dropdb($3.name)};
 
 createdb:	CREATE DATABASE dbname ';' {createdb($3.name)};
 usedb:		USE DATABASE dbname ';' {usedb($3.name)};
@@ -143,6 +148,9 @@ selectsql:	SELECT fields_star FROM tablenames ';'
 				$$->tablenames = $4;
 			}
 			|SELECT fields_star FROM tablenames WHERE conditions ';'
+			{
+				$$=new struct selectsql;
+			}
 			;
 fields_star: table_fields
 			{

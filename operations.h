@@ -83,3 +83,5 @@ void closedb();
 void usedb(char *);
 void createtable(struct createsql *);
 void select(struct selectsql *);
+void droptable(char *);
+void dropdb(char *);

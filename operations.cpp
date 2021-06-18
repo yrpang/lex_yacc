@@ -93,6 +93,12 @@ void createtable(struct createsql *data)
 
 void select(struct selectsql *sql)
 {
+    if (db_now == -1)
+    {
+        cout << "Error: no use db." << endl;
+        return;
+    }
+
     int table_index;
     for (table_index = 0; table_index < all[db_now].tables.size(); table_index++)
     {
@@ -113,4 +119,46 @@ void select(struct selectsql *sql)
         }
         cout << endl;
     }
+}
+
+void droptable(char *name)
+{
+    if (db_now == -1)
+    {
+        cout << "Error: no use db." << endl;
+        return;
+    }
+
+    bool flag = false;
+    for (vector<Table>::iterator iter = all[db_now].tables.begin(); iter != all[db_now].tables.end(); iter++)
+    {
+        if ((*iter).name == name)
+        {
+            iter = all[db_now].tables.erase(iter);
+            iter--;
+            flag = true;
+        }
+    }
+    if (flag)
+        cout << "deleted: " << name << endl;
+    else
+        cout << "not found." << endl;
+}
+
+void dropdb(char *name)
+{
+    bool flag = false;
+    for (vector<Database>::iterator iter = all.begin(); iter != all.end(); iter++)
+    {
+        if ((*iter).name == name)
+        {
+            iter = all.erase(iter);
+            iter--;
+            flag = true;
+        }
+    }
+    if (flag)
+        cout << "deleted: " << name << endl;
+    else
+        cout << "not found." << endl;
 }
