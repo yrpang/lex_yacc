@@ -1,7 +1,7 @@
 %{
-#include <stdio.h>
+#include <cstdio>
 #include <string>
-#include "operations.h"
+#include "sql.h"
 #include "sql.tab.h"
 
 %}

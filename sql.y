@@ -1,9 +1,9 @@
 %{
-#include "operations.h"
 #include <ctype.h>
-#include <stdio.h>
-#include "sql.tab.h"
+#include <cstdio>
 #include <string>
+#include "sql.h"
+#include "sql.tab.h"
 using namespace std;
 extern int yylex(void);
 int yyerror(char * msg);
