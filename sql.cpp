@@ -162,3 +162,112 @@ void dropdb(char *name)
     else
         cout << "not found." << endl;
 }
+
+void calculate(struct calvalue *cal)
+{
+    if (cal->valuetype == 1 || cal->valuetype == 2)
+        return;
+
+    if (cal->valuetype == 3)
+    {
+        calculate(cal->leftcal);
+        calculate(cal->rightcal);
+
+        struct calvalue *&left = cal->leftcal;
+        struct calvalue *&right = cal->rightcal;
+
+        if (left->valuetype == 1 && right->valuetype == 1)
+        {
+            cal->valuetype = 1;
+            if (cal->caltype == 1)
+            {
+                cal->intnum = left->intnum + right->intnum;
+            }
+            else if (cal->caltype == 2)
+            {
+                cal->intnum = left->intnum - right->intnum;
+            }
+            else if (cal->caltype == 3)
+            {
+                cal->intnum = left->intnum * right->intnum;
+            }
+            else
+            {
+                cal->doublenum = left->intnum / right->intnum;
+            }
+        }
+        else if (left->valuetype == 1 && right->valuetype == 2)
+        {
+            cal->valuetype = 2;
+            if (cal->caltype == 1)
+            {
+                cal->doublenum = left->intnum + right->doublenum;
+            }
+            else if (cal->caltype == 2)
+            {
+                cal->doublenum = left->intnum - right->doublenum;
+            }
+            else if (cal->caltype == 3)
+            {
+                cal->doublenum = left->intnum * right->doublenum;
+            }
+            else
+            {
+                cal->doublenum = left->intnum / right->doublenum;
+            }
+        }
+        else if (left->valuetype == 2 && right->valuetype == 1)
+        {
+            cal->valuetype = 2;
+            if (cal->caltype == 1)
+            {
+                cal->doublenum = left->doublenum + right->intnum;
+            }
+            else if (cal->caltype == 2)
+            {
+                cal->doublenum = left->doublenum - right->intnum;
+            }
+            else if (cal->caltype == 3)
+            {
+                cal->doublenum = left->doublenum * right->intnum;
+            }
+            else
+            {
+                cal->doublenum = left->doublenum / right->intnum;
+            }
+        }
+        else
+        {
+            cal->valuetype = 2;
+            cout << cal->caltype << endl;
+            if (cal->caltype == 1)
+            {
+                cal->doublenum = left->doublenum + right->doublenum;
+            }
+            else if (cal->caltype == 2)
+            {
+                cal->doublenum = left->doublenum - right->doublenum;
+            }
+            else if (cal->caltype == 3)
+            {
+                cal->doublenum = left->doublenum * right->doublenum;
+            }
+            else
+            {
+                cal->doublenum = left->doublenum / right->doublenum;
+            }
+        }
+        return;
+    }
+}
+
+void insert(struct insertsql *sql)
+{
+    struct dataformat *ptr = sql->datas;
+    while (ptr != NULL)
+    {
+        cout << ptr->data << " ";
+        ptr = ptr->next;
+    }
+    cout << endl;
+}

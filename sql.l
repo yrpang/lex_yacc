@@ -119,8 +119,8 @@ exit exit
 {string} {
     yylval.value.length = strlen(yytext)+1; 
     yylval.value.name=(char *)malloc(strlen(yytext)+1);
-    strlcpy(yylval.value.name, yytext, sizeof(yylval.value.name));
-    // printf("字符串%s：长度为%zu\n", yytext, yyleng);
+    strlcpy(yylval.value.name, yytext, strlen(yytext)+1);
+    printf("字符串%s：长度为%d\n", yylval.value.name, strlen(yytext));
     return STRING;
 }
 

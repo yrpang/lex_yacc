@@ -10,7 +10,7 @@ struct values
     int length;
 };
 
-//createsql
+/* createsql */
 struct coltype
 {
     int type; //1:int, 2: double, 3:string
@@ -33,7 +33,7 @@ struct createsql
     struct cols *cols;
 };
 
-//selectsql
+/* selectsql */
 struct fields
 {
     char *colname;
@@ -52,6 +52,35 @@ struct selectsql
 {
     struct fields *fields;
     struct tablenames *tablenames; // 待完善
+};
+
+/* insertsql */
+struct calvalue //记录运算得到的值
+{
+    //valuetype: 1是int，2是double，3是表达式（如 1+2）；
+    int valuetype;
+    int intnum;
+    double doublenum;
+    struct calvalue *leftcal;
+    //caltype: 1是+，2是-，3是*，4是/
+    int caltype;
+    struct calvalue *rightcal;
+};
+
+struct dataformat
+{
+    char *data;
+    int length;
+    int type; // 3:string
+    int num;
+    struct dataformat *next;
+};
+
+struct insertsql
+{
+    char *tablename;
+    struct colname *colnames;
+    struct dataformat *datas;
 };
 
 /* 数据库自用结构 */
@@ -85,3 +114,5 @@ void createtable(struct createsql *);
 void select(struct selectsql *);
 void droptable(char *);
 void dropdb(char *);
+void calculate(struct calvalue *);
+void insert(struct insertsql *);

@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <cstdio>
 #include <string>
+#include <string>
 #include "sql.h"
 #include "sql.tab.h"
 using namespace std;
@@ -15,14 +16,18 @@ int yyerror(char * msg);
 	struct values value;
 
 	/* createtable */
-	struct colname* colname;
 	struct coltype* coltype;
 	struct cols* cols;
 	struct createsql* createsql;
 
+	/* select */
 	struct fields* fields;
-	struct selectsql* selectsql;
 	struct tablenames* tablenames;
+	struct selectsql* selectsql;
+
+	struct calvalue* calvalue;
+	struct dataformat* dataformat;
+	struct insertsql* insertsql;
 }
 
 %token EXIT
@@ -47,6 +52,9 @@ int yyerror(char * msg);
 %type<tablenames> tablenames
 %type<selectsql> selectsql
 
+%type<calvalue> cal 
+%type<dataformat> value values
+%type<insertsql> insertsql
 
 %%
 
@@ -56,7 +64,7 @@ statements:	statement {return 0;}
 
 statement:	createsql {createtable($1)}
 			|selectsql {select($1)}
-			|insertsql {printf("INSERT\n")}
+			|insertsql {insert($1)}
 			|deletesql {printf("DELETE\n")}
 			|updatesql {printf("UPDATE\n")}
 			|createdb 
@@ -75,7 +83,7 @@ dbname:		ID
 			{
 				$$.length = $1.length;
 				$$.name = (char *)malloc($1.length);
-				strlcpy($$.name, $1.name, sizeof($$.name));
+				strlcpy($$.name, $1.name, $1.length);
 			};
 
 
@@ -83,14 +91,14 @@ createsql:	CREATE TABLE tablename '(' cols ')' ';'
 			{
 				$$=new struct createsql;
 				$$->tablename = (char *)malloc($3.length);
-				strlcpy($$->tablename, $3.name, sizeof($$->tablename));
+				strlcpy($$->tablename, $3.name, $3.length);
 				$$->cols = $5;
 			};
 tablename:	ID
 			{
 				$$.length = $1.length;
 				$$.name = (char *)malloc($1.length);
-				strlcpy($$.name, $1.name, sizeof($$.name));
+				strlcpy($$.name, $1.name, $1.length);
 			};
 cols:		cols ',' col
 			{
@@ -109,7 +117,7 @@ col:		colname coltype
 			{
 				$$=new struct cols;
 				$$->colname=(char*)malloc($1.length);
-				strlcpy($$->colname, $1.name, sizeof($$->colname));
+				strlcpy($$->colname, $1.name, $1.length);
 				$$->coltype = $2->type;
 				$$->length = $2->length;
 				$$->next = NULL;
@@ -118,7 +126,7 @@ colname:	ID
 			{
 				$$.length = $1.length;
 				$$.name = (char *)malloc($1.length);
-				strlcpy($$.name, $1.name, sizeof($$.name));
+				strlcpy($$.name, $1.name, $1.length);
 			};
 coltype:	INT
 			{
@@ -182,7 +190,7 @@ table_field: colname
 				$$=new struct fields;
 				$$->tablename = NULL;
 				$$->colname = (char*)malloc($1.length);
-				strlcpy($$->colname, $1.name, sizeof($$->colname));
+				strlcpy($$->colname, $1.name, $1.length);
 				$$->ifall=false;
 				$$->next=NULL;
 			}
@@ -190,9 +198,9 @@ table_field: colname
 			{
 				$$=new struct fields;
 				$$->tablename = (char*)malloc($1.length);
-				strlcpy($$->tablename, $1.name, sizeof($$->tablename));
+				strlcpy($$->tablename, $1.name, $1.length);
 				$$->colname = (char*)malloc($3.length);
-				strlcpy($$->colname, $3.name, sizeof($$->colname));
+				strlcpy($$->colname, $3.name, $3.length);
 				$$->ifall=false;
 				$$->next=NULL;
 			}
@@ -201,7 +209,7 @@ tablenames:	tablename
 			{
 				$$=new struct tablenames;
 				$$->tablename = (char*)malloc($1.length);
-				strlcpy($$->tablename, $1.name, sizeof($$->tablename));
+				strlcpy($$->tablename, $1.name, $1.length);
 				$$->next=NULL;
 			}
 			| tablenames ',' tablename
@@ -220,25 +228,115 @@ comp_op:	'<'|'>'|'<' '='|'>' '='|'!' '='|'=';
 
 insertsql:	INSERT INTO tablename insertcolname VALUES '(' values ')' ';'
 			|INSERT INTO tablename VALUES '(' values ')' ';'
+			{
+				$$ = new struct insertsql;
+				$$->tablename = (char*)malloc($3.length);
+				strlcpy($$->tablename, $3.name, $3.length);
+				$$->colnames = NULL;
+				$$->datas = $6;
+			}
 			;
 insertcolname:	'(' fields_star ')';
-values:	values ',' value
-		|value
+values:	values ',' value 
+		{
+			$$ = $1;
+			while($1->next!=NULL) $1 = $1->next; 
+			$1->next = $3;
+		}
+		|value{$$=$1}
 		;
 value:	STRING
 		{
-			
+			$$=new struct dataformat;
+			$$->data = (char*) malloc($1.length);
+			strlcpy($$->data, $1.name, $1.length);
+			$$->length = $1.length-2; //去掉两个引号
+			$$->type=3;
+			$$->next = NULL;
 		}
 		|cal
+		{
+			$$ = new struct dataformat;
+			calculate($1);
+			if($1->valuetype == 1) 
+			{
+				$$->data = (char *)malloc(4);
+				string str = std::to_string($1->intnum);
+				strlcpy($$->data, str.c_str(), sizeof($$->data));
+				$$->length = 4;
+				$$->type = 1;
+				$$->next = NULL; 
+			}
+			if($1->valuetype == 2)
+			{
+				$$->data = (char *)malloc(8);
+				string str = std::to_string($1->doublenum);
+				strlcpy($$->data, str.c_str(), sizeof($$->data));
+				$$->length = 8;
+				$$->type = 2;
+				$$->next = NULL; 
+			}
+		}
 		;
 cal:	cal '+' cal
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 3;
+			$$->caltype = 1;
+			$$->leftcal = $1;
+			$$->rightcal = $3;
+		}
 		|cal '-' cal
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 3;
+			$$->caltype = 2;
+			$$->leftcal = $1;
+			$$->rightcal = $3;
+		}
 		|cal '*' cal
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 3;
+			$$->caltype = 3;
+			$$->leftcal = $1;
+			$$->rightcal = $3;
+		}
 		|cal '/' cal
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 3;
+			$$->caltype = 4;
+			$$->leftcal = $1;
+			$$->rightcal = $3;
+		}
 		|'-' cal
-		|'(' cal ')'
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 3;
+			$$->caltype = 2;
+			$$->leftcal = new struct calvalue;
+			$$->leftcal->valuetype=1;
+			$$->leftcal->intnum=0;
+			$$->rightcal = $2;
+		}
+		|'(' cal ')'{{$$ = $2;}}
 		|INTNUM
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 1;
+			$$->leftcal = NULL;
+			$$->rightcal = NULL;
+			$$->intnum = $1.intnum;
+		}
 		|FLOATNUM
+		{
+			$$ = new struct calvalue;
+			$$->valuetype = 2;
+			$$->leftcal = NULL;
+			$$->rightcal = NULL;
+			$$->doublenum = $1.doublenum; 
+		}
 		;
 
 
