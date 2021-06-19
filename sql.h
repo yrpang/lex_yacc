@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <boost/serialization/vector.hpp>
 using namespace std;
 
 struct values
@@ -89,6 +90,14 @@ struct Column
     string name;
     int type;
     vector<string> data;
+
+    template <class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar &name;
+        ar &type;
+        ar &data;
+    }
 };
 
 struct Table
@@ -96,6 +105,14 @@ struct Table
     int num = 0;
     string name;
     vector<Column> all_cols;
+
+    template <class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar &num;
+        ar &name;
+        ar &all_cols;
+    }
 };
 
 struct Database
@@ -103,8 +120,17 @@ struct Database
     int num = 0;
     string name;
     vector<Table> tables;
+
+    template <class Archive>
+    void serialize(Archive &ar, const unsigned int version)
+    {
+        ar &num;
+        ar &name;
+        ar &tables;
+    }
 };
 
+void initdb();
 void createdb(char *);
 void closedb();
 void usedb(char *);

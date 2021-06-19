@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 using namespace std;
 
 vector<Database> all;
@@ -15,15 +17,21 @@ int db_now;
 void initdb()
 {
     db_now = -1;
+    std::ifstream ifs("data.dat");
+    if (ifs)
+    {
+        boost::archive::binary_iarchive ia(ifs);
+        ia >> all;
+    }
 }
 
 void closedb()
 {
-    // std::ofstream ofs("data.dat");
-    // {
-    //     boost::archive::binary_oarchive oa(ofs);
-    //     oa << all;
-    // }
+    std::ofstream ofs("data.dat");
+    {
+        boost::archive::binary_oarchive oa(ofs);
+        oa << all;
+    }
 
     cout << "saving... No shutdown!!!" << endl;
     exit(0);
@@ -306,7 +314,7 @@ void insert(struct insertsql *sql)
     if (data.size() != table.all_cols.size())
     {
         cout << "Error: values supply is not match with the columns.";
-    }
+    }
 
     for (int i = 0; i < data.size(); i++)
     {

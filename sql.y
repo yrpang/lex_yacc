@@ -356,7 +356,8 @@ exit:	EXIT ';';
 
 %%
 int main(void)
-{
+{	
+	initdb();
 	while(1)
 	{
 		yyparse();
