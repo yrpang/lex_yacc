@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include <cstdio>
 #include <string>
-#include <string>
 #include "sql.h"
 #include "sql.tab.h"
 using namespace std;

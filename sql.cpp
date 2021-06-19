@@ -1,3 +1,5 @@
+// bug: 1.计算表达式的值 2.insert没有检验类型 3.
+
 #include "sql.h"
 #include <iostream>
 #include <fstream>
@@ -8,17 +10,21 @@
 using namespace std;
 
 vector<Database> all;
-int db_num;
 int db_now;
 
 void initdb()
 {
-    db_num = 0;
     db_now = -1;
 }
 
 void closedb()
 {
+    // std::ofstream ofs("data.dat");
+    // {
+    //     boost::archive::binary_oarchive oa(ofs);
+    //     oa << all;
+    // }
+
     cout << "saving... No shutdown!!!" << endl;
     exit(0);
 }
@@ -87,8 +93,9 @@ void createtable(struct createsql *data)
 
     all[db_now].tables.push_back(table);
 
-    cout << table.num << endl;
-    cout << table.all_cols.size() << endl;
+    // cout << table.num << endl;
+    // cout << table.all_cols.size() << endl;
+    cout << "Created " << data->tablename << endl;
 }
 
 void select(struct selectsql *sql)
@@ -196,6 +203,7 @@ void calculate(struct calvalue *cal)
             }
             else
             {
+                cal->valuetype = 2;
                 cal->doublenum = left->intnum / right->intnum;
             }
         }
@@ -298,7 +306,7 @@ void insert(struct insertsql *sql)
     if (data.size() != table.all_cols.size())
     {
         cout << "Error: values supply is not match with the columns.";
-    }
+    }
 
     for (int i = 0; i < data.size(); i++)
     {
