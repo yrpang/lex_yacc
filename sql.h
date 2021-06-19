@@ -88,9 +88,7 @@ struct Column
 {
     string name;
     int type;
-    vector<int> intdata;
-    vector<float> floatdata;
-    vector<string> strdata;
+    vector<string> data;
 };
 
 struct Table

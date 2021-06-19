@@ -115,7 +115,10 @@ void select(struct selectsql *sql)
     {
         for (auto i : all[db_now].tables[table_index].all_cols)
         {
-            cout << i.name << " ";
+            cout << i.name << ":";
+            for (auto j : i.data)
+                cout << j << " ";
+            cout << endl;
         }
         cout << endl;
     }
@@ -263,11 +266,44 @@ void calculate(struct calvalue *cal)
 
 void insert(struct insertsql *sql)
 {
+    if (db_now == -1)
+    {
+        cout << "Error: no use db." << endl;
+        return;
+    }
+
+    struct Database &db = all[db_now];
+    int table_index = 0;
+    for (table_index = 0; table_index < db.tables.size(); table_index++)
+    {
+        if (db.tables[table_index].name == sql->tablename)
+            break;
+    }
+    if (table_index >= db.tables.size())
+    {
+        cout << "Table not exist" << endl;
+        return;
+    }
+
+    struct Table &table = db.tables[table_index];
+
     struct dataformat *ptr = sql->datas;
+    vector<dataformat> data;
     while (ptr != NULL)
     {
+        data.push_back(*ptr);
         cout << ptr->data << " ";
         ptr = ptr->next;
     }
+    if (data.size() != table.all_cols.size())
+    {
+        cout << "Error: values supply is not match with the columns.";
+    }
+
+    for (int i = 0; i < data.size(); i++)
+    {
+        table.all_cols[i].data.push_back(data[i].data);
+    }
+
     cout << endl;
 }
