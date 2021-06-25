@@ -15,18 +15,23 @@ int yyerror(char * msg);
 	struct values value;
 
 	/* createtable */
-	struct coltype* coltype;
-	struct cols* cols;
-	struct createsql* createsql;
+	struct type* type;
+	struct colstruct* colstruct;
+	struct createstate* createstate;
 
 	/* select */
 	struct fields* fields;
 	struct tablenames* tablenames;
-	struct selectsql* selectsql;
+	struct selectstate* selectstate;
 
 	struct calvalue* calvalue;
 	struct dataformat* dataformat;
-	struct insertsql* insertsql;
+	struct insertstate* insertstate;
+
+	/* condition */
+	struct condition_field* condfield;
+	struct conditions* condition;
+	int comp_op;
 }
 
 %token EXIT
@@ -43,30 +48,33 @@ int yyerror(char * msg);
 %left '!'
 
 %type<value> dbname colname tablename
-%type<coltype> coltype
-%type<cols> cols col
-%type<createsql> createsql
+%type<type> type
+%type<colstruct> columns onecol
+%type<createstate> createstate
 
 %type<fields> fields_star table_field table_fields
 %type<tablenames> tablenames
-%type<selectsql> selectsql
+%type<selectstate> selectstate
 
 %type<calvalue> cal 
 %type<dataformat> value values
-%type<insertsql> insertsql
+%type<insertstate> insertstate
 
+%type<condfield> comp_left comp_right
+%type<condition> conditions condition
+%type<comp_op> comp_op
 %%
 
 statements:	statement {return 0;}
 			|statements statement {return 0;}
 			;
 
-statement:	createsql {createtable($1)}
-			|selectsql {select($1)}
-			|insertsql {insert($1)}
-			|deletesql {printf("DELETE\n")}
-			|updatesql {printf("UPDATE\n")}
-			|createdb 
+statement:	createdb 
+			|createstate {createtable($1)}
+			|selectstate {select($1)}
+			|insertstate {insert($1)}
+			|deletestate {printf("DELETE\n")}
+			|updatestate {printf("UPDATE\n")}
 			|usedb
 			|droptable
 			|dropdb
@@ -86,9 +94,9 @@ dbname:		ID
 			};
 
 
-createsql:	CREATE TABLE tablename '(' cols ')' ';'
+createstate:	CREATE TABLE tablename '(' columns ')' ';'
 			{
-				$$=new struct createsql;
+				$$=new struct createstate;
 				$$->tablename = (char *)malloc($3.length);
 				strlcpy($$->tablename, $3.name, $3.length);
 				$$->cols = $5;
@@ -99,7 +107,7 @@ tablename:	ID
 				$$.name = (char *)malloc($1.length);
 				strlcpy($$.name, $1.name, $1.length);
 			};
-cols:		cols ',' col
+columns:		columns ',' onecol
 			{
 				$$=$1;
 				while($1->next!=NULL)
@@ -108,16 +116,16 @@ cols:		cols ',' col
 				}
 				$1->next = $3;
 			}
-			|col
+			|onecol
 			{
 				$$=$1;
 			};
-col:		colname coltype
+onecol:		colname type
 			{
-				$$=new struct cols;
+				$$=new struct colstruct;
 				$$->colname=(char*)malloc($1.length);
 				strlcpy($$->colname, $1.name, $1.length);
-				$$->coltype = $2->type;
+				$$->type = $2->type;
 				$$->length = $2->length;
 				$$->next = NULL;
 			};
@@ -127,36 +135,39 @@ colname:	ID
 				$$.name = (char *)malloc($1.length);
 				strlcpy($$.name, $1.name, $1.length);
 			};
-coltype:	INT
+type:	INT
 			{
-				$$=new struct coltype; 
+				$$=new struct type; 
 				$$->type = 1;
 				$$->length = 4;
 			}
 			|DOUBLE
 			{
-				$$=new struct coltype;
+				$$=new struct type;
 				$$->type = 2;
 				$$->length = 8;
 			}
 			|CHAR '(' INTNUM ')'
 			{
-				$$=new struct coltype;
+				$$=new struct type;
 				$$->type = 3;
 				$$->length = $3.intnum;
 			}
 			;
 
 
-selectsql:	SELECT fields_star FROM tablenames ';'
+selectstate: SELECT fields_star FROM tablenames ';'
 			{
-				$$=new struct selectsql;
+				$$=new struct selectstate;
 				$$->fields = $2;
 				$$->tablenames = $4;
 			}
 			|SELECT fields_star FROM tablenames WHERE conditions ';'
 			{
-				$$=new struct selectsql;
+				$$=new struct selectstate;
+				$$->fields = $2;
+				$$->tablenames = $4;
+				$$->conds = $6;
 			}
 			;
 fields_star: table_fields
@@ -215,20 +226,87 @@ tablenames:	tablename
 			;
 
 conditions:	condition
+			{
+				$$ = $1;
+			}
 			|'(' conditions ')'
+			{
+				$$ = $2;
+			}
 			|conditions AND conditions
+			{
+				$$ = new struct conditions;
+				$$->node_type = 2;
+				$$->virtualtype = 1;
+				$$->left = $1;
+				$$->right = $3;
+			}
 			|conditions OR conditions
+			{
+				$$ = new struct conditions;
+				$$->node_type = 2;
+				$$->virtualtype = 2;
+				$$->left = $1;
+				$$->right = $3;
+			}
 			;
-condition:	comp_left comp_op comp_right;
-comp_left:	table_field|INTNUM|FLOATNUM;
-comp_right:	table_field|INTNUM|FLOATNUM;
-comp_op:	'<'|'>'|'<' '='|'>' '='|'!' '='|'=';
+condition:	comp_left comp_op comp_right
+			{
+				$$ = new struct conditions;
+				$$->node_type = 1;
+				$$->con_type = $2;
+				$$->con_left = $1;
+				$$->con_right = $3;
+				// $$->left=NULL;
+				// $$->right=NULL;
+			};
+comp_left:	table_field
+			{
+				$$ = new struct condition_field;
+				$$->type = 1;
+				$$->field = $1;
+			}
+			|INTNUM
+			{
+				$$ = new struct condition_field;
+				$$->type = 2;
+				$$->intnum = $1.intnum;
+			}
+			|FLOATNUM
+			{
+				$$ = new struct condition_field;
+				$$->type = 3;
+				$$->doublenum = $1.doublenum;
+			};
+comp_right:	table_field
+			{
+				$$ = new struct condition_field;
+				$$->type = 1;
+				$$->field = $1;
+			}
+			|INTNUM
+			{
+				$$ = new struct condition_field;
+				$$->type = 2;
+				$$->intnum = $1.intnum;
+			}
+			|FLOATNUM
+			{
+				$$ = new struct condition_field;
+				$$->type = 3;
+				$$->doublenum = $1.doublenum;
+			}
+			;
+comp_op:	'<'{$$=1;} |'>'{$$=2;}|'<' '='{$$=3;}|'>' '='{$$=4;}|'!' '='{$$=5;}|'='{$$=6;};
 
 
-insertsql:	INSERT INTO tablename insertcolname VALUES '(' values ')' ';'
+insertstate: INSERT INTO tablename insertcolname VALUES '(' values ')' ';'
+			{
+				$$=new struct insertstate;
+			}
 			|INSERT INTO tablename VALUES '(' values ')' ';'
 			{
-				$$ = new struct insertsql;
+				$$ = new struct insertstate;
 				$$->tablename = (char*)malloc($3.length);
 				strlcpy($$->tablename, $3.name, $3.length);
 				$$->colnames = NULL;
@@ -339,7 +417,7 @@ cal:	cal '+' cal
 		;
 
 
-updatesql:	UPDATE tablename SET setconfs WHERE conditions ';'
+updatestate: UPDATE tablename SET setconfs WHERE conditions ';'
 			|UPDATE tablename SET setconfs ';'
 			;
 setconfs:	setconf
@@ -348,7 +426,7 @@ setconfs:	setconf
 setconf:	table_field '=' value;
 
 
-deletesql:	DELETE FROM tablename WHERE conditions ';'
+deletestate: DELETE FROM tablename WHERE conditions ';'
 			|DELETE FROM tablename ';'
 			;
 

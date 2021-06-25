@@ -11,30 +11,30 @@ struct values
     int length;
 };
 
-/* createsql */
-struct coltype
+/* createstate */
+struct type
 {
     int type; //1:int, 2: double, 3:string
     int length;
 };
 
 // 列信息
-struct cols
+struct colstruct
 {
     char *colname;
-    int coltype;
+    int type;
     int length;
     int num;
-    struct cols *next;
+    struct colstruct *next;
 };
 
-struct createsql
+struct createstate
 {
     char *tablename;
-    struct cols *cols;
+    struct colstruct *cols;
 };
 
-/* selectsql */
+/* selectstate */
 struct fields
 {
     char *colname;
@@ -49,13 +49,14 @@ struct tablenames
     struct tablenames *next;
 };
 
-struct selectsql
+struct selectstate
 {
     struct fields *fields;
     struct tablenames *tablenames; // 待完善
+    struct conditions *conds;
 };
 
-/* insertsql */
+/* insertstate */
 struct calvalue //记录运算得到的值
 {
     //valuetype: 1是int，2是double，3是表达式（如 1+2）；
@@ -77,11 +78,33 @@ struct dataformat
     struct dataformat *next;
 };
 
-struct insertsql
+struct insertstate
 {
     char *tablename;
     struct colname *colnames;
     struct dataformat *datas;
+};
+
+/* 条件部分 */
+struct condition_field
+{
+    int type; // 1:table_field 表名称 2:INTNUM 3:FLOATNUM
+    struct fields *field; // 以field填充保留扩展性
+    int intnum;
+    double doublenum;
+};
+
+struct conditions
+{
+    // 0:null, 1:condition node, 2: virtual node(AND OR NOT)
+    int node_type;
+    int con_type; // < > <= >= != =
+    struct condition_field *con_left;
+    struct condition_field *con_right;
+    int virtualtype; // AND OR
+    struct conditions *left;
+    struct conditions *right;
+    bool result;
 };
 
 /* 数据库自用结构 */
@@ -134,9 +157,9 @@ void initdb();
 void createdb(char *);
 void closedb();
 void usedb(char *);
-void createtable(struct createsql *);
-void select(struct selectsql *);
+void createtable(struct createstate *);
+void select(struct selectstate *);
 void droptable(char *);
 void dropdb(char *);
 void calculate(struct calvalue *);
-void insert(struct insertsql *);
+void insert(struct insertstate *);

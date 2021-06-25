@@ -67,7 +67,7 @@ void usedb(char *name)
     }
 }
 
-void createtable(struct createsql *data)
+void createtable(struct createstate *data)
 {
     if (db_now == -1)
     {
@@ -88,12 +88,12 @@ void createtable(struct createsql *data)
     table.name = data->tablename;
     table.num = 0;
 
-    struct cols *ptr = data->cols;
+    struct colstruct *ptr = data->cols;
     while (ptr != NULL)
     {
         struct Column tmp;
         tmp.name = ptr->colname;
-        tmp.type = ptr->coltype;
+        tmp.type = ptr->type;
         table.num++;
         table.all_cols.push_back(tmp);
         ptr = ptr->next;
@@ -106,7 +106,12 @@ void createtable(struct createsql *data)
     cout << "Created " << data->tablename << endl;
 }
 
-void select(struct selectsql *sql)
+bool check(vector<string> colname, vector<string> nodedata, struct conditions *cond)
+{
+    
+}
+
+void select(struct selectstate *sql)
 {
     if (db_now == -1)
     {
@@ -124,6 +129,30 @@ void select(struct selectsql *sql)
     {
         cout << "Error: table fields now exist." << endl;
         return;
+    }
+
+    if (sql->conds != NULL)
+    {
+        vector<Column> &cols = all[db_now].tables[table_index].all_cols;
+        vector<string> colname;
+        for (int i = 0; i < cols.size(); i++)
+        {
+            colname.push_back(cols[i].name);
+        }
+
+        for (int i = 0; i < cols[0].data.size(); i++) // 行号
+        {
+            vector<string> nodedata;
+            for (int j = 0; j < cols.size(); j++) // 列号
+            {
+                nodedata.push_back(cols[j].data[i]);
+            }
+            check(colname, nodedata, sql->conds);
+        }
+
+        cout << sql->conds->con_left->field->colname << endl;
+        cout << sql->conds->con_right->type << endl;
+        cout << sql->conds->con_right->doublenum << endl;
     }
 
     if (sql->fields->ifall)
@@ -280,7 +309,7 @@ void calculate(struct calvalue *cal)
     }
 }
 
-void insert(struct insertsql *sql)
+void insert(struct insertstate *sql)
 {
     if (db_now == -1)
     {
